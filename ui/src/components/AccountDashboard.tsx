@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { account } from '../Types/Account';
+import { Account, TransactionResponse } from '../Types/types';
 import Paper from '@mui/material/Paper/Paper';
 import { Button, Card, CardContent, Grid, TextField } from '@mui/material';
 import { useMutation } from '@tanstack/react-query';
 
 type AccountDashboardProps = {
-  account: account;
+  account: Account;
   signOut: () => Promise<void>;
 };
 
@@ -14,26 +14,19 @@ type AccountDashboardProps = {
 const MIN_WITHDRAWAL_AMOUNT = 5;
 const MAX_WITHDRAWAL_AMOUNT = 200;
 
-type TransactionResponse = {
-  account_number: number;
-  name: string;
-  amount: number;
-  type: string;
-  credit_limit: number;
-};
+const getRequestOptions = (amount: number) => ({
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ amount })
+});
 
 export const AccountDashboard = (props: AccountDashboardProps) => {
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const [account, setAccount] = useState(props.account);
-
   const { signOut } = props;
 
-  const getRequestOptions = (amount: number) => ({
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount })
-  });
   const onSuccessfulMutation = (data: TransactionResponse) => {
     setAccount({
       ...data,
@@ -41,7 +34,6 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
       creditLimit: data.credit_limit
     });
   };
-
   const putDepositMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(
@@ -53,20 +45,11 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
     },
     onSuccess: onSuccessfulMutation
   });
-  const depositFunds = async () => {
-    putDepositMutation.mutate();
-  };
-
   const putWithdrawalMutation = useMutation({
     mutationFn: async () => {
-      const requestOptions = {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: withdrawAmount })
-      };
       const response = await fetch(
         `http://localhost:3000/transactions/${account.accountNumber}/withdraw`,
-        requestOptions
+        getRequestOptions(withdrawAmount)
       );
 
       return response.json();
@@ -74,7 +57,23 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
     onSuccess: onSuccessfulMutation
   });
 
+  const depositFunds = async () => {
+    putDepositMutation.mutate();
+  };
   const withdrawFunds = () => {
+    if (withdrawAmount > MAX_WITHDRAWAL_AMOUNT) {
+      setWithdrawError(`Cannot withdraw more than $${MAX_WITHDRAWAL_AMOUNT} per transaction.`);
+
+      return;
+    }
+
+    if (withdrawAmount < MIN_WITHDRAWAL_AMOUNT) {
+      setWithdrawError(`Cannot withdraw less than $${MIN_WITHDRAWAL_AMOUNT}.`);
+
+      return;
+    }
+
+    setWithdrawError(null);
     putWithdrawalMutation.mutate();
   };
 
@@ -125,7 +124,10 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
             <CardContent>
               <h3>Withdraw</h3>
               <TextField
+                {...(withdrawError && { color: 'error' })}
+                error={!!withdrawError}
                 label="Withdraw Amount"
+                helperText={withdrawError || null}
                 variant="outlined"
                 type="number"
                 sx={{
