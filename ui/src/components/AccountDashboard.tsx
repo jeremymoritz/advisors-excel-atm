@@ -17,6 +17,8 @@ const MAX_WITHDRAWAL_AMOUNT = 200;
 const MAX_DAILY_WITHDRAWAL_TOTAL = 400;
 const WITHDRAWAL_INCREMENT = 5; // must be able to be dispensed in $5 bills
 
+const ARTIFICIAL_DELAY_TIME_IN_MILLIS = 800;
+
 const getRequestOptions = (amount: number) => ({
   method: 'PUT',
   headers: { 'Content-Type': 'application/json' },
@@ -49,6 +51,9 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
   };
   const putDepositMutation = useMutation({
     mutationFn: async () => {
+      // artificial delay to show pending state
+      await new Promise((r) => setTimeout(r, ARTIFICIAL_DELAY_TIME_IN_MILLIS));
+
       const response = await fetch(
         `http://localhost:3000/transactions/${account.accountNumber}/deposit`,
         getRequestOptions(depositAmount)
@@ -60,6 +65,9 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
   });
   const putWithdrawalMutation = useMutation({
     mutationFn: async () => {
+      // artificial delay to show pending state
+      await new Promise((r) => setTimeout(r, ARTIFICIAL_DELAY_TIME_IN_MILLIS));
+
       const response = await fetch(
         `http://localhost:3000/transactions/${account.accountNumber}/withdraw`,
         getRequestOptions(withdrawAmount)
@@ -191,7 +199,7 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
               </Button>
             </CardContent>
           </Card>
-          {putDepositMutation.isPending && <h4 style={{ textAlign: 'center' }}>Pending...</h4>}
+          {putDepositMutation.isPending && <h4 style={{ textAlign: 'center' }}>Processing...</h4>}
           {putDepositMutation.isSuccess && !depositError && (
             <h4 style={{ textAlign: 'center', color: 'green' }}>Successful Deposit!</h4>
           )}
@@ -226,7 +234,9 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
               </Button>
             </CardContent>
           </Card>
-          {putWithdrawalMutation.isPending && <h4 style={{ textAlign: 'center' }}>Pending...</h4>}
+          {putWithdrawalMutation.isPending && (
+            <h4 style={{ textAlign: 'center' }}>Processing...</h4>
+          )}
           {putWithdrawalMutation.isSuccess && !withdrawError && (
             <h4 style={{ textAlign: 'center', color: 'green' }}>Successful Withdrawal!</h4>
           )}
