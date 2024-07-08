@@ -11,6 +11,7 @@ type AccountDashboardProps = {
 
 // Ideally these would exist and be enforced in the API and only supplementally
 // provided to the frontend to improve the user experience
+const MAX_DEPOSIT_AMOUNT = 1000;
 const MIN_WITHDRAWAL_AMOUNT = 5;
 const MAX_WITHDRAWAL_AMOUNT = 200;
 const MAX_DAILY_WITHDRAWAL_TOTAL = 400;
@@ -34,6 +35,7 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [depositError, setDepositError] = useState<string | null>(null);
   const [dailyWithdrawalTotal, setDailyWithdrawalTotal] = useState(0);
   const [account, setAccount] = useState(props.account);
   const { signOut } = props;
@@ -69,6 +71,23 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
   });
 
   const depositFunds = async () => {
+    if (depositAmount > MAX_DEPOSIT_AMOUNT) {
+      setDepositError(`Cannot deposit more than ${moneyfy(MAX_DEPOSIT_AMOUNT)} per transaction.`);
+
+      return;
+    }
+
+    if (account.type === 'credit' && account.amount + depositAmount > 0) {
+      setDepositError(
+        `Cannot deposit more than what is required to zero out this account (${moneyfy(
+          -account.amount
+        )}).`
+      );
+
+      return;
+    }
+
+    setDepositError(null);
     putDepositMutation.mutate();
   };
   const withdrawFunds = () => {
@@ -147,7 +166,10 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
             <CardContent>
               <h3>Deposit</h3>
               <TextField
+                {...(depositError && { color: 'error' })}
+                error={!!depositError}
                 label="Deposit Amount"
+                helperText={depositError ? `ERROR: ${depositError}` : null}
                 variant="outlined"
                 type="number"
                 sx={{
@@ -170,7 +192,7 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
             </CardContent>
           </Card>
           {putDepositMutation.isPending && <h4 style={{ textAlign: 'center' }}>Pending...</h4>}
-          {putDepositMutation.isSuccess && (
+          {putDepositMutation.isSuccess && !depositError && (
             <h4 style={{ textAlign: 'center', color: 'green' }}>Successful Deposit!</h4>
           )}
         </Grid>
