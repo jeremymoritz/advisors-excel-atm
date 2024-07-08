@@ -13,6 +13,8 @@ type AccountDashboardProps = {
 // provided to the frontend to improve the user experience
 const MIN_WITHDRAWAL_AMOUNT = 5;
 const MAX_WITHDRAWAL_AMOUNT = 200;
+const MAX_DAILY_WITHDRAWAL_TOTAL = 400;
+const WITHDRAWAL_INCREMENT = 5; // must be able to be dispensed in $5 bills
 
 const getRequestOptions = (amount: number) => ({
   method: 'PUT',
@@ -20,10 +22,19 @@ const getRequestOptions = (amount: number) => ({
   body: JSON.stringify({ amount })
 });
 
+const moneyfy = (amount?: number | null) =>
+  new Intl.NumberFormat('en-US', {
+    currency: 'USD',
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    style: 'currency'
+  }).format(amount || 0);
+
 export const AccountDashboard = (props: AccountDashboardProps) => {
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [dailyWithdrawalTotal, setDailyWithdrawalTotal] = useState(0);
   const [account, setAccount] = useState(props.account);
   const { signOut } = props;
 
@@ -62,18 +73,62 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
   };
   const withdrawFunds = () => {
     if (withdrawAmount > MAX_WITHDRAWAL_AMOUNT) {
-      setWithdrawError(`Cannot withdraw more than $${MAX_WITHDRAWAL_AMOUNT} per transaction.`);
+      setWithdrawError(
+        `Cannot withdraw more than ${moneyfy(MAX_WITHDRAWAL_AMOUNT)} per transaction.`
+      );
 
       return;
     }
 
     if (withdrawAmount < MIN_WITHDRAWAL_AMOUNT) {
-      setWithdrawError(`Cannot withdraw less than $${MIN_WITHDRAWAL_AMOUNT}.`);
+      setWithdrawError(`Cannot withdraw less than ${moneyfy(MIN_WITHDRAWAL_AMOUNT)}.`);
+
+      return;
+    }
+
+    // dispensable in $5 bills
+    if (withdrawAmount % WITHDRAWAL_INCREMENT) {
+      setWithdrawError(
+        `Withdrawal amount must be able to be dispensed in ${moneyfy(WITHDRAWAL_INCREMENT)} bills.`
+      );
+
+      return;
+    }
+
+    if (account.type === 'credit') {
+      // each credit account has a negative amount and positive credit limit
+      if (withdrawAmount - account.amount > (account.creditLimit || 0)) {
+        setWithdrawError(
+          `You cannot withdraw beyond your credit limit (${moneyfy(account.creditLimit)}).`
+        );
+
+        return;
+      }
+    } else if (withdrawAmount > account.amount) {
+      // not a credit account
+      setWithdrawError(
+        `You cannot withdraw more than your full balance (${moneyfy(account.amount)}).`
+      );
+
+      return;
+    }
+
+    const dailyTotalAfterWithdrawal = dailyWithdrawalTotal + withdrawAmount;
+
+    if (dailyTotalAfterWithdrawal > MAX_DAILY_WITHDRAWAL_TOTAL) {
+      setWithdrawError(
+        `This withdrawal would bring your daily total to ${moneyfy(
+          dailyTotalAfterWithdrawal
+        )}, which exceeds the daily maximum withdrawal amount of ${moneyfy(
+          MAX_DAILY_WITHDRAWAL_TOTAL
+        )}.`
+      );
 
       return;
     }
 
     setWithdrawError(null);
+    setDailyWithdrawalTotal(dailyWithdrawalTotal + withdrawAmount);
     putWithdrawalMutation.mutate();
   };
 
@@ -85,7 +140,7 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
           Sign Out
         </Button>
       </div>
-      <h2>Balance: ${account.amount}</h2>
+      <h2>Balance: {moneyfy(account.amount)}</h2>
       <Grid container spacing={2} padding={2}>
         <Grid item xs={6}>
           <Card className="deposit-card">
@@ -127,7 +182,7 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
                 {...(withdrawError && { color: 'error' })}
                 error={!!withdrawError}
                 label="Withdraw Amount"
-                helperText={withdrawError || null}
+                helperText={withdrawError ? `ERROR: ${withdrawError}` : null}
                 variant="outlined"
                 type="number"
                 sx={{
@@ -150,7 +205,7 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
             </CardContent>
           </Card>
           {putWithdrawalMutation.isPending && <h4 style={{ textAlign: 'center' }}>Pending...</h4>}
-          {putWithdrawalMutation.isSuccess && (
+          {putWithdrawalMutation.isSuccess && !withdrawError && (
             <h4 style={{ textAlign: 'center', color: 'green' }}>Successful Withdrawal!</h4>
           )}
         </Grid>
