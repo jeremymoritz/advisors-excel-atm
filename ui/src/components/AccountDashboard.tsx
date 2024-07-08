@@ -14,6 +14,14 @@ type AccountDashboardProps = {
 const MIN_WITHDRAWAL_AMOUNT = 5;
 const MAX_WITHDRAWAL_AMOUNT = 200;
 
+type TransactionResponse = {
+  account_number: number;
+  name: string;
+  amount: number;
+  type: string;
+  credit_limit: number;
+};
+
 export const AccountDashboard = (props: AccountDashboardProps) => {
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
@@ -21,24 +29,32 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
 
   const { signOut } = props;
 
-  const depositFunds = async () => {
-    const requestOptions = {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: depositAmount })
-    };
-    const response = await fetch(
-      `http://localhost:3000/transactions/${account.accountNumber}/deposit`,
-      requestOptions
-    );
-    const data = await response.json();
+  const getRequestOptions = (amount: number) => ({
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount })
+  });
+  const onSuccessfulMutation = (data: TransactionResponse) => {
     setAccount({
+      ...data,
       accountNumber: data.account_number,
-      name: data.name,
-      amount: data.amount,
-      type: data.type,
       creditLimit: data.credit_limit
     });
+  };
+
+  const putDepositMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(
+        `http://localhost:3000/transactions/${account.accountNumber}/deposit`,
+        getRequestOptions(depositAmount)
+      );
+
+      return response.json();
+    },
+    onSuccess: onSuccessfulMutation
+  });
+  const depositFunds = async () => {
+    putDepositMutation.mutate();
   };
 
   const putWithdrawalMutation = useMutation({
@@ -55,28 +71,11 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
 
       return response.json();
     },
-    onSuccess: (data) => {
-      setAccount({
-        accountNumber: data.account_number,
-        name: data.name,
-        amount: data.amount,
-        type: data.type,
-        creditLimit: data.credit_limit
-      });
-    }
+    onSuccess: onSuccessfulMutation
   });
 
-  const withdrawFunds = async () => {
-    // const requestOptions = {
-    //   method: 'PUT',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({amount: withdrawAmount})
-    // }
-    // const response = await fetch(`http://localhost:3000/transactions/${account.accountNumber}/withdraw`, requestOptions);
-    // const data = await response.json();
-    const data = await putWithdrawalMutation.mutateAsync();
-
-    if (!data) return;
+  const withdrawFunds = () => {
+    putWithdrawalMutation.mutate();
   };
 
   return (
@@ -116,6 +115,10 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
               </Button>
             </CardContent>
           </Card>
+          {putDepositMutation.isPending && <h4 style={{ textAlign: 'center' }}>Pending...</h4>}
+          {putDepositMutation.isSuccess && (
+            <h4 style={{ textAlign: 'center', color: 'green' }}>Successful Deposit!</h4>
+          )}
         </Grid>
         <Grid item xs={6}>
           <Card className="withdraw-card">
@@ -144,8 +147,9 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
               </Button>
             </CardContent>
           </Card>
+          {putWithdrawalMutation.isPending && <h4 style={{ textAlign: 'center' }}>Pending...</h4>}
           {putWithdrawalMutation.isSuccess && (
-            <h4 style={{ textAlign: 'center' }}>Successful Withdrawal!</h4>
+            <h4 style={{ textAlign: 'center', color: 'green' }}>Successful Withdrawal!</h4>
           )}
         </Grid>
       </Grid>
