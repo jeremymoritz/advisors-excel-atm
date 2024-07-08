@@ -199,7 +199,11 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
               </Button>
             </CardContent>
           </Card>
-          {putDepositMutation.isPending && <h4 style={{ textAlign: 'center' }}>Processing...</h4>}
+          {putDepositMutation.isPending && (
+            <h4 style={{ textAlign: 'center' }}>
+              Processing... <span className="animate-spin inline-block text-lg h-8 w-4">+</span>
+            </h4>
+          )}
           {putDepositMutation.isSuccess && !depositError && (
             <h4 style={{ textAlign: 'center', color: 'green' }}>Successful Deposit!</h4>
           )}
@@ -235,7 +239,9 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
             </CardContent>
           </Card>
           {putWithdrawalMutation.isPending && (
-            <h4 style={{ textAlign: 'center' }}>Processing...</h4>
+            <h4 style={{ textAlign: 'center' }}>
+              Processing... <span className="animate-spin inline-block text-lg h-8 w-4">+</span>
+            </h4>
           )}
           {putWithdrawalMutation.isSuccess && !withdrawError && (
             <h4 style={{ textAlign: 'center', color: 'green' }}>Successful Withdrawal!</h4>
