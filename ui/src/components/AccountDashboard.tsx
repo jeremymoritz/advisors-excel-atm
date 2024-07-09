@@ -170,7 +170,7 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
       </div>
       <h2>Balance: {moneyfy(account.amount)}</h2>
       <Grid container spacing={2} padding={2}>
-        <Grid item xs={6}>
+        <Grid item xs={12} sm={6}>
           <Card className="deposit-card">
             <CardContent>
               <h3>Deposit</h3>
@@ -209,7 +209,7 @@ export const AccountDashboard = (props: AccountDashboardProps) => {
             <h4 style={{ textAlign: 'center', color: 'green' }}>Successful Deposit!</h4>
           )}
         </Grid>
-        <Grid item xs={6}>
+        <Grid item xs={12} sm={6}>
           <Card className="withdraw-card">
             <CardContent>
               <h3>Withdraw</h3>
