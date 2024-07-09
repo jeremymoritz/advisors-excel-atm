@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Account, TransactionResponse } from '../Types/types';
+import { Account } from '../types/Account';
 import Paper from '@mui/material/Paper/Paper';
 import { Button, Card, CardContent, Grid, TextField } from '@mui/material';
 import { useMutation } from '@tanstack/react-query';
+import { TransactionResponse } from '../types/TransactionResponse';
 
 type AccountDashboardProps = {
   account: Account;

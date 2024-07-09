@@ -3,7 +3,7 @@ import './App.css';
 import { Grid } from '@mui/material';
 import { SignIn } from './components/SignIn';
 import { AccountDashboard } from './components/AccountDashboard';
-import { Account } from './Types/types';
+import { Account } from './types/Account';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
