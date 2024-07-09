@@ -28,7 +28,7 @@ Once you have completed the project, we ask that you take some time to answer th
 Please create a public Github repo and use that while you work on this project. Once completed, send michael.hartung@advisorsexcel.com a link to the public repo, and our team will review.
 
 ### Evaluation Process
-When evaluating this project, we will start by downloading the project, running `docker run build` and then `docker compose up -d`. Make sure that your project can be run with these two steps, otherwise it will not be considered.
+When evaluating this project, we will start by downloading the project, running `docker-compose build --no-cache` and then `docker compose up -d`. Make sure that your project can be run with these two steps, otherwise it will not be considered.
 
 After testing the project and reviewing code, we will discuss internally, and if your project is accepted, we will reach out to schedule the first interview, which involves a code review of your project.
 
